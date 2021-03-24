@@ -4,12 +4,12 @@
 # LICENSE file in the root directory of this source tree.
 
 # just for debugging
-DATA=$1
+DATA="Barn"
 RES="1080x1920"
 VALIDRES="540x960"  # the original size maybe too slow for evaluation
                     # we can optionally half the image size only for validation
 ARCH="nsvf_base"
-SUFFIX="v1"
+SUFFIX="v2"
 DATASET=/home/ICT2000/rli/data/nsvf_data/TanksAndTemple/${DATA}
 SAVE=/home/ICT2000/rli/projects/nsvf_ckpt/$DATA
 MODEL=$ARCH$SUFFIX
@@ -19,16 +19,16 @@ mkdir -p $SAVE/$MODEL
 python train.py ${DATASET} \
     --user-dir fairnr \
     --task single_object_rendering \
-    --train-views "0..133" \
+    --train-views "0..336" \
     --view-resolution $RES \
     --max-sentences 1 \
     --view-per-batch 2 \
     --pixel-per-view 2048 \
     --valid-chunk-size 128 \
-    --no-preload\
+    --no-preload \
     --sampling-on-mask 1.0 --no-sampling-at-reader \
     --valid-view-resolution $VALIDRES \
-    --valid-views "133..152" \
+    --valid-views "336..384" \
     --valid-view-per-batch 1 \
     --transparent-background "1.0,1.0,1.0" \
     --background-stop-gradient \
@@ -55,4 +55,6 @@ python train.py ${DATASET} \
     --keep-interval-updates 5 \
     --log-format simple --log-interval 1 \
     --tensorboard-logdir ${SAVE}/tensorboard/${MODEL} \
-    --save-dir ${SAVE}/${MODEL}
+    --save-dir ${SAVE}/${MODEL} \
+    --disable-validation \
+    --distributed-init-method "tcp://vgl-gpu06.ict.usc.edu:8542"

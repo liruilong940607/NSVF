@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 # just for debugging
-DATA=$1
+DATA="Family"
 RES="1080x1920"
 VALIDRES="540x960"  # the original size maybe too slow for evaluation
                     # we can optionally half the image size only for validation
@@ -22,8 +22,8 @@ python train.py ${DATASET} \
     --train-views "0..133" \
     --view-resolution $RES \
     --max-sentences 1 \
-    --view-per-batch 1 \
-    --pixel-per-view 1024 \
+    --view-per-batch 2 \
+    --pixel-per-view 2048 \
     --valid-chunk-size 128 \
     --no-preload\
     --sampling-on-mask 1.0 --no-sampling-at-reader \
@@ -41,17 +41,17 @@ python train.py ${DATASET} \
     --optimizer "adam" \
     --adam-betas "(0.9, 0.999)" \
     --lr-scheduler "polynomial_decay" \
-    --total-num-update 600000 \
+    --total-num-update 150000 \
     --lr 0.001 \
     --clip-norm 0.0 \
     --criterion "srn_loss" \
     --num-workers 0 \
     --seed 2 \
-    --save-interval-updates 2000 --max-update 600000 \
-    --virtual-epoch-steps 20000 --save-interval 1 \
-    --half-voxel-size-at  "20000,100000,300000" \
-    --reduce-step-size-at "20000,100000,300000" \
-    --pruning-every-steps 10000 \
+    --save-interval-updates 500 --max-update 150000 \
+    --virtual-epoch-steps 5000 --save-interval 1 \
+    --half-voxel-size-at  "5000,25000,75000" \
+    --reduce-step-size-at "5000,25000,75000" \
+    --pruning-every-steps 2500 \
     --keep-interval-updates 5 \
     --log-format simple --log-interval 1 \
     --tensorboard-logdir ${SAVE}/tensorboard/${MODEL} \
