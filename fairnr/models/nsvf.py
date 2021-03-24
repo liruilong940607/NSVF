@@ -36,7 +36,7 @@ class NSVFModel(NeRFModel):
         super().add_args(parser)
         parser.add_argument('--fine-num-sample-ratio', type=float, default=0,
             help='raito of samples compared to the first pass')
-        parser.add_argument('--inverse-distance-coarse-sampling', type=str, 
+        parser.add_argument('--inverse-distance-coarse-sampling', type=str,
             choices=['none', 'camera', 'origin'], default='none',
             help='if set, we do not sample points uniformly through voxels.')
 
@@ -54,14 +54,14 @@ class NSVFModel(NeRFModel):
                 uv, size, mask=mask, return_mask=True)
             sampled_masks = sampled_masks.reshape(uv.size(0), -1).bool()
             hits, sampled_masks = hits[sampled_masks].reshape(S, -1), sampled_masks.unsqueeze(-1)
-            intersection_outputs = {name: outs[sampled_masks.expand_as(outs)].reshape(S, -1, outs.size(-1)) 
+            intersection_outputs = {name: outs[sampled_masks.expand_as(outs)].reshape(S, -1, outs.size(-1))
                 for name, outs in intersection_outputs.items()}
             ray_start = ray_start[sampled_masks.expand_as(ray_start)].reshape(S, -1, 3)
             ray_dir = ray_dir[sampled_masks.expand_as(ray_dir)].reshape(S, -1, 3)
-        
+
         else:
             sampled_uv = None
-        
+
         min_depth = intersection_outputs['min_depth']
         max_depth = intersection_outputs['max_depth']
         pts_idx = intersection_outputs['intersected_voxel_idx']
@@ -73,7 +73,7 @@ class NSVFModel(NeRFModel):
         else:
             intersection_outputs['steps'] = dists.sum(-1) / self.encoder.step_size
         return ray_start, ray_dir, intersection_outputs, hits, sampled_uv
-        
+
     def raymarching(self, ray_start, ray_dir, intersection_outputs, encoder_states, fine=False):
         samples, all_results = super().raymarching(ray_start, ray_dir, intersection_outputs, encoder_states, fine)
         all_results['voxel_edges'] = self.encoder.get_edge(ray_start, ray_dir, samples, encoder_states)
@@ -90,11 +90,11 @@ class NSVFModel(NeRFModel):
          # we need fill_in for NSVF for background
         S, V, P = sizes
         fullsize = S * V * P
-        
+
         all_results['missed'] = fill_in((fullsize, ), hits, all_results['missed'], 1.0).view(S, V, P)
         all_results['colors'] = fill_in((fullsize, 3), hits, all_results['colors'], 0.0).view(S, V, P, 3)
         all_results['depths'] = fill_in((fullsize, ), hits, all_results['depths'], 0.0).view(S, V, P)
-        
+
         BG_DEPTH = self.field.bg_color.depth
         bg_color = self.field.bg_color(all_results['colors'])
         all_results['colors'] += all_results['missed'].unsqueeze(-1) * bg_color.reshape(fullsize, 3).view(S, V, P, 3)
@@ -120,8 +120,8 @@ class NSVFModel(NeRFModel):
         if 'voxel_edges' in output and output['voxel_edges'] is not None:
             # voxel hitting visualization
             images['{}_voxel/{}:HWC'.format(name, img_id)] = {
-                'img': output['voxel_edges'][shape, view].float(), 
-                'min_val': 0, 
+                'img': output['voxel_edges'][shape, view].float(),
+                'min_val': 0,
                 'max_val': 1,
                 'weight':
                     compute_normal_map(
@@ -131,7 +131,7 @@ class NSVFModel(NeRFModel):
                         sample['extrinsics'][shape, view].float().inverse(),
                         width, proj=True)
                 }
-        
+
         if 'feat_n2' in output and output['feat_n2'] is not None:
             images['{}_featn2/{}:HWC'.format(name, img_id)] = {
                 'img': output['feat_n2'][shape, view].float(),
@@ -139,7 +139,7 @@ class NSVFModel(NeRFModel):
                 'max_val': 1
             }
         return images
-    
+
     @torch.no_grad()
     def prune_voxels(self, th=0.5, train_stats=False):
         self.encoder.pruning(self.field, th, train_stats=train_stats)
@@ -164,6 +164,7 @@ class NSVFModel(NeRFModel):
         self.encoder.clean_runtime_caches()
         if reset:
             self.encoder.reset_runtime_caches()
+        torch.cuda.empty_cache() # cache release after Model do all things
 
 @register_model_architecture("nsvf", "nsvf_base")
 def base_architecture(args):
@@ -172,7 +173,7 @@ def base_architecture(args):
     args.max_hits = getattr(args, "max_hits", 60)
     args.raymarching_stepsize = getattr(args, "raymarching_stepsize", 0.01)
     args.raymarching_stepsize_ratio = getattr(args, "raymarching_stepsize_ratio", 0.0)
-    
+
     # encoder default parameter
     args.voxel_embed_dim = getattr(args, "voxel_embed_dim", 32)
     args.voxel_path = getattr(args, "voxel_path", None)
@@ -188,10 +189,10 @@ def base_architecture(args):
     # API Update: fix the number of layers
     args.feature_layers = getattr(args, "feature_layers", 1)
     args.texture_layers = getattr(args, "texture_layers", 3)
-    
+
     args.background_stop_gradient = getattr(args, "background_stop_gradient", False)
     args.background_depth = getattr(args, "background_depth", 5.0)
-    
+
     # raymarcher
     args.discrete_regularization = getattr(args, "discrete_regularization", False)
     args.deterministic_step = getattr(args, "deterministic_step", False)
